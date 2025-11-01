@@ -149,6 +149,14 @@ The collection contains 61\,900 daily observations that run from December~2019 t
 
 Completeness checks in MongoDB show that geographic metadata is 100\% present, population values are missing in just 0.2\% of rows, while \texttt{cases}/\texttt{deaths} exist in roughly 69\%/41\% of rows (the remaining values were not reported at the very beginning of the pandemic). Because the population and continent fields are reliable, the MapReduce and Spark jobs can safely compute case fatality ratios and cases per 100\,000 inhabitants, and the visualisation scripts can aggregate by continent without additional cleaning steps.
 
+\begin{figure}[p]
+    \centering
+    \includegraphics[width=\textwidth]{studio3T.png}
+    \caption{Initial Studio 3T exploration of the \texttt{encounters} collection. The GUI provided a quick schema overview and spot-checked the first few documents before automating the analysis in code.}
+    \label{fig:studio3t}
+\end{figure}
+\FloatBarrier
+
 \section{Methodology}
 The project follows a repeatable pipeline that mirrors the structure encouraged in the lectures. Figure-level outputs and runtime comparisons appear later, but the development process already blended several validation and cross-check steps that are worth detailing.
 
@@ -217,10 +225,29 @@ db.encounters.aggregate([
 
 The MapReduce section mirrors the Hadoop reducers: the first job simply sums cases and deaths, while the second buffers (date, cases) pairs per country, sorts them, and scans a sliding 14-day window in a \texttt{finalize} function, following the pattern recommended in the MongoDB documentation \cite{MapReduceDatabaseManual}. Inline outputs take around 0.35 to 0.48~seconds on my machine.
 
-\begin{figure}[H]
+\begin{figure}[p]
     \centering
-    \includegraphics[width=\textwidth]{screenshot_mongo.png}
-    \caption{MongoDB playground session showing the aggregation script, completeness audit, and MapReduce runtimes.}
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{screenshot_mongo.png}
+        \caption{Playground command block}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{screenshot_mongo_results.png}
+        \caption{Sample aggregation results}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{screenshot_mongo_country_time.png}
+        \caption{Country MapReduce timing}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{screenshot_mongo_rolling_time.png}
+        \caption{Rolling-window timing}
+    \end{subfigure}
+    \caption{MongoDB playground evidence: loading the script, inspecting the aggregation output, and capturing the runtime for each MapReduce job.}
     \label{fig:mongo-playground}
 \end{figure}
 \FloatBarrier
@@ -250,8 +277,27 @@ Job runtimes were 1.82~s (country totals) and 2.46~s (rolling window), mainly du
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{screenshot_hadoop.png}
-    \caption{Hadoop Streaming execution in the Docker container. The terminal output confirms the command configuration and shows the top rows emitted by the reducer.}
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{screenshot_hadoop.png}
+        \caption{Country totals job submission}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{screenshot_hadoop_results.png}
+        \caption{Reducer output sample}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{screenshot_hadoop_2.png}
+        \caption{Rolling-window job submission}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{screenshot_hadoop_2_results.png}
+        \caption{Rolling-window results}
+    \end{subfigure}
+    \caption{Hadoop Streaming runs inside the Docker container: each command, together with the head of the HDFS output for the country totals and rolling 14-day incidence jobs.}
     \label{fig:hadoop-cli}
 \end{figure}
 \FloatBarrier
@@ -278,8 +324,17 @@ Running on \texttt{local[4]} workers produced results identical to Hadoop/MongoD
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{screenshot_spark.png}
-    \caption{Spark submission from the terminal with a preview of the resulting DataFrame, confirming parity with the MongoDB and Hadoop outputs.}
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{screenshot_spark.png}
+        \caption{spark-submit invocation}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{screenshot_spark_results.png}
+        \caption{Preview with runtime print-out}
+    \end{subfigure}
+    \caption{Spark CLI execution: the left panel shows the submission command, while the right panel confirms the top-country preview and reports the ~8 second total runtime emitted by the script.}
     \label{fig:spark-cli}
 \end{figure}
 \FloatBarrier
@@ -398,19 +453,19 @@ Figure~\ref{fig:animation-frames} compares three snapshots of the pandemic: the 
         MongoDB MapReduce & Peak 14-day & 0.47 \\
         Hadoop Streaming & Country totals & 20.07 \\
         Hadoop Streaming & Peak 14-day & 19.99 \\
-        Spark (local[4]) & Aggregations & 2.38 \\
+        Spark (local[4]) & Aggregations & 7.97 \\
         \bottomrule
     \end{tabular}
 \end{table}
 \FloatBarrier
 
-MongoDB proved ideal for fast exploration and quick tweaks inside the playground. Hadoop demanded more scaffolding but delivered fine-grained control that mirrors the exercises from class. Spark ran the same aggregations with compact code and produced Parquet outputs, even if the JVM start-up kept runtimes a little higher—a ranking that aligns with independent benchmarks contrasting Spark and MapReduce on analytical workloads \cite{tekdoganBenchmarkingApacheSpark2021,vermaBigDataManagement2016}.
+MongoDB proved ideal for fast exploration and quick tweaks inside the playground (both MapReduce jobs complete in well under half a second). Hadoop demanded more scaffolding but delivered fine-grained control that mirrors the exercises from class; the streaming jobs now average roughly twenty seconds each because the Python mapper/reducer start-ups dominate the runtime. Spark sits between the two extremes: it finishes the three aggregations in about eight seconds, writes the results as Parquet, and echoes the total duration using the built-in timer added to the script—a ranking consistent with published Spark-versus-MapReduce comparisons on analytical workloads \cite{tekdoganBenchmarkingApacheSpark2021,vermaBigDataManagement2016}.
 
 \newpage
 \section{Discussion and conclusion}
 Running the three pipelines side by side did more than just stress the software.    It confirmed that the underlying indicators are stable: the United States, India, and Brazil lead the global case count, Europe is on track for a significant resurgence in the autumn of 2020, mortality curves trail cases by about one month, and only a few territories have reached the most severe 14-day incidence levels.  That consistency gave me the assurance that each platform was properly set up before moving on to the next.
 
-Each platform has its own merits. MongoDB provided the quickest iteration cycle, therefore it was used to validate calculations and explore the dataset. Hadoop Streaming felt challenging to launch, but it followed the precise MapReduce patterns discussed in the tutorials, which confirmed that I could still describe the logic with explicit key-value programs in Python. Spark sat in the middle: the source remained concise, the DataFrame API made the transformations understandable, and the outputs were available for reuse thanks to Parquet storage.
+Each platform has its own merits. MongoDB provided the quickest iteration cycle, therefore it was used to validate calculations and explore the dataset. Hadoop Streaming felt challenging to launch, but it followed the precise MapReduce patterns discussed in the tutorials, which confirmed that I could still describe the logic with explicit key-value programs in Python—just at the cost of longer wall-clock times. Spark remained a pragmatic compromise: the source stayed concise, the DataFrame API made the transformations understandable, the new runtime print-out reports an eight-second turnaround, and the outputs were immediately reusable thanks to Parquet storage.
 
 If I had more time, I would look into filling the early gaps in the case and death columns, layering in hospitalisation or vaccination context, and turning the notebook-style scripts into scheduled runs. For now, the workflow already meets the course objectives and remains faithful to the toolset we practised in class while producing a complete, reproducible study of the ECDC dataset.
 

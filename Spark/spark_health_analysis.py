@@ -15,7 +15,7 @@ Each dataset is written as Parquet under the provided output directory.
 It was executed as follows:
 spark-submit data_integration_and_big_data/Project3/Spark/spark_health_analysis.py \
     --input file:///Users/raulduran/Documents/M2_GENIOMHE/data_integration_and_big_data/Project3/data/encounters.ndjson \
-    --output data_integration_and_big_data/Project3/Spark/output
+    --output file:///Users/raulduran/Documents/M2_GENIOMHE/data_integration_and_big_data/Project3/Spark/output
 """
 
 from __future__ import annotations
@@ -92,6 +92,8 @@ def write_output(df: DataFrame, path: str):
 
 
 def main():
+    import time
+    start = time.perf_counter()
     args = parse_args()
     spark = SparkSession.builder.appName("HealthDataAnalytics").getOrCreate()
 
@@ -110,6 +112,8 @@ def main():
     country_totals.show(10, truncate=False)
 
     spark.stop()
+    elapsed = time.perf_counter() - start
+    print(f"Total Spark job runtime: {elapsed:.2f} seconds")
 
 
 if __name__ == "__main__":
