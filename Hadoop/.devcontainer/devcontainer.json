@@ -1,0 +1,16 @@
+{
+  "name": "Hadoop Single Node (Dev Container)",
+  "build": { "dockerfile": "Dockerfile" },
+  "forwardPorts": [9870, 9864, 8088, 9000],
+  "mounts": ["source=${localWorkspaceFolder},target=/workspace,type=bind"],
+  "workspaceFolder": "/workspace",
+  "containerEnv": {
+    "HADOOP_HOME": "/opt/hadoop"
+  },
+  "overrideCommand": true,
+  "postCreateCommand": "chmod +x /etc/bootstrap.sh",
+  "postStartCommand": "bash -lc '/etc/bootstrap.sh -d && sleep 5 && jps'",
+  "customizations": {
+    "vscode": { "extensions": ["ms-azuretools.vscode-docker","ms-python.python"] }
+  }
+}

@@ -1,0 +1,476 @@
+\documentclass[12pt, a4paper]{article}
+
+% Encoding and language
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+
+\usepackage{newtxtext,newtxmath} % Times-like font family for text and math
+
+% Layout and typography
+\usepackage[a4paper, margin=2.5cm]{geometry}
+\usepackage{setspace}
+\usepackage{enumitem}
+
+% Figures, tables, and formatting helpers
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float} % For precise float placement with [H]
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{listings}
+
+% Math, symbols, hyperlinks
+\usepackage[dvipsnames]{xcolor}
+\usepackage{hyperref}
+\usepackage{underscore} % Allows underscores in normal text
+\usepackage{csquotes}
+
+% ----- Custom metadata -----
+\newcommand{\university}{Université Évry Paris-Saclay}
+\newcommand{\faculty}{Master 2 GENIOMHE}
+\newcommand{\coursename}{Data Integration and Big Data}
+\newcommand{\projecttitle}{\textit{Project 3:} Health Data Analytics}
+\newcommand{\subtitle}{Comprehensive Report including Hadoop, MongoDB, and Spark Implementations}
+\newcommand{\studentname}{Raul DURAN DE ALBA}
+\newcommand{\studentid}{20245534}
+\newcommand{\instructorname}{Nazim AGOULMINE}
+\newcommand{\academicyear}{Academic Year 2025--2026}
+\newcommand{\submissiondate}{\today}
+
+% Paths for figures (optional)
+\graphicspath{{figures/}}
+
+% Bibliography setup (switch backend to biber if preferred)
+\usepackage[backend=bibtex, style=numeric, sorting=none]{biblatex}
+\addbibresource{references.bib}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=MidnightBlue,
+    citecolor=MidnightBlue,
+    urlcolor=BrickRed,
+    pdftitle={\projecttitle},
+    pdfauthor={\studentname},
+    pdfsubject={\coursename \space Report},
+    pdfkeywords={Big Data, Hadoop, MapReduce}
+}
+
+% Listings configuration for code snippets
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    captionpos=b,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny,
+    keywordstyle=\color{MidnightBlue}\bfseries,
+    commentstyle=\color{gray}\itshape,
+    stringstyle=\color{BrickRed},
+    showstringspaces=false,
+    tabsize=4
+}
+
+\lstdefinelanguage{json}{
+    basicstyle=\ttfamily\small,
+    commentstyle=\color{gray}\itshape,
+    stringstyle=\color{BrickRed},
+    showstringspaces=false,
+    breaklines=true,
+    literate=
+     *{0}{{{\color{MidnightBlue}0}}}{1}
+      {1}{{{\color{MidnightBlue}1}}}{1}
+      {2}{{{\color{MidnightBlue}2}}}{1}
+      {3}{{{\color{MidnightBlue}3}}}{1}
+      {4}{{{\color{MidnightBlue}4}}}{1}
+      {5}{{{\color{MidnightBlue}5}}}{1}
+      {6}{{{\color{MidnightBlue}6}}}{1}
+      {7}{{{\color{MidnightBlue}7}}}{1}
+      {8}{{{\color{MidnightBlue}8}}}{1}
+      {9}{{{\color{MidnightBlue}9}}}{1}
+      {:}{{{\color{MidnightBlue}:}}}{1}
+      {,}{{{\color{MidnightBlue},}}}{1}
+      {\{}{{{\color{MidnightBlue}\{}}}{1}
+      {\}}{{{\color{MidnightBlue}\}}}}{1}
+      {[}{{{\color{MidnightBlue}[}}}{1}
+      {]}{{{\color{MidnightBlue}]}}}{1}
+}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    \newcommand{\logoheightleft}{2.45cm}
+    \newcommand{\logoheightright}{1.6cm}
+    \vspace*{-0.6cm}
+
+    \begingroup
+    \setlength{\tabcolsep}{0pt}
+    \renewcommand{\arraystretch}{1}
+    \begin{tabular}{@{}>{\centering\arraybackslash}m{0.5\textwidth}>{\centering\arraybackslash}m{0.5\textwidth}@{}}
+        \IfFileExists{figures/logo_left.png}{\includegraphics[height=\logoheightleft, keepaspectratio]{figures/logo_left.png}}{\rule{0pt}{\logoheightleft}} &
+        \IfFileExists{figures/logo_right.png}{\includegraphics[height=\logoheightright, keepaspectratio]{figures/logo_right.png}}{\rule{0pt}{\logoheightright}}
+    \end{tabular}
+    \endgroup
+
+    \vspace{2.5cm}
+    {\large \textsc{\faculty} \par}
+    \vspace{0.2cm}
+    {\large \coursename \par}
+    \vspace{0.2cm}
+    {\small \academicyear \par}
+
+    \vspace{2.8cm}
+    {\huge \textsc{\projecttitle} \par}
+    \vspace{0.5cm}
+    {\Large \itshape \subtitle \par}
+
+    \vspace{3cm}
+    \begin{tabular}{>{\raggedleft\arraybackslash}p{4cm} p{8cm}}
+        Prepared by: & \studentname \\
+        Student ID: & \studentid \\
+        Professor: & \instructorname \\
+    \end{tabular}
+
+    \vfill
+    {\submissiondate \par}
+\end{titlepage}
+
+% ----- Front matter -----
+\pagenumbering{roman}
+\onehalfspacing
+
+\begin{abstract}
+The COVID-19 pandemic generated a continuous stream of daily case and death records from every country. Turning these raw surveillance feeds into timely indicators is a core learning goal of the \coursename{} module. In this project we ingest the European Centre for Disease Prevention and Control (ECDC) worldwide case dataset (61{,}900 records covering December 2019--December 2020) and build three complementary processing pipelines: MongoDB aggregations and MapReduce jobs for interactive exploration, Hadoop Streaming jobs for batch processing, and a PySpark application for scalable analytics. The analysis surfaces epidemiological hotspots (United States, India, Brazil and France together account for $48\%$ of reported cases), highlights continent-level waves, and quantifies peak 14-day rolling incidence to prioritise interventions. We export curated aggregates for visualisation dashboards and compare runtimes across engines, observing that MongoDB MapReduce produces country totals in $\approx0.35\,\mathrm{s}$, Hadoop Streaming in $1.8\,\mathrm{s}$, and Spark in $2.4\,\mathrm{s}$ on the same local environment. The report summarises the methodology, presents the derived indicators, and discusses trade-offs between development velocity, flexibility, and execution performance when combining NoSQL, Hadoop, and Spark in a health analytics workflow.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+% Uncomment if lists of figures/tables are needed
+% \listoffigures
+% \listoftables
+% \newpage
+
+\pagenumbering{arabic}
+
+% ----- Main sections -----
+\section{Introduction}
+The Cloud Computing for M2 Genomics module (lectures 4--5 and the accompanying support notes)\footnote{Lecture slides: \path{data_integration_and_big_data/Cours Cloud Computing For M2 Genomics - part 4 v3.pdf} and \path{data_integration_and_big_data/Cours Cloud Computing For M2 Genomics - part 5.pdf}. Practical workbook: \path{data_integration_and_big_data/Support Cours 2.2.pdf}.} equips students with Hadoop Streaming, MongoDB MapReduce, Spark DataFrames, and Python-based reporting. Exercise~4 challenges us to mobilise exactly those technologies on a health dataset. We therefore selected the publicly available ECDC COVID-19 surveillance feed, which records daily case counts, deaths, population denominators, and geographic metadata for 217 territories between December 2019 and December 2020. The goal is to translate this raw feed into epidemiological indicators (total burden, per-capita incidence, fatality risk, and pace of transmission) while benchmarking the three engines introduced during lectures.
+
+The core questions addressed are:
+\begin{itemize}[leftmargin=1.2cm]
+    \item Which countries and continents experienced the highest case burden during the first year of the pandemic?
+    \item How did the global situation evolve month by month, and which territories recorded the sharpest 14-day incidence peaks?
+    \item What are the engineering and performance implications of implementing the same analytics in MongoDB, Hadoop, and Spark?
+\end{itemize}
+
+Answering these questions requires data quality checks, metric definitions aligned with epidemiological practice, and reproducible processing pipelines. The remainder of the report documents each step and synthesises the findings.
+
+\section{Project Objectives and Scope}
+\subsection{Problem Statement}
+Pandemic surveillance supports governments, hospitals, and the public with situational awareness and planning. Timely analytics help prioritise testing resources, anticipate ICU demand, and evaluate policy interventions (lockdowns, travel restrictions). The ECDC dataset is openly licensed and aggregated at the country level, which mitigates privacy concerns while still offering high-level decision support. Stakeholders include national public health agencies, the World Health Organisation, and data journalists who communicate pandemic status to citizens.
+
+\subsection{Objectives}
+\begin{itemize}[leftmargin=1.2cm]
+    \item \textbf{Exercise 1--2 (Data understanding).} Profile the dataset, quantify completeness, and document the schema. KPI: percentage of records with valid case and death counts (achieved $68.64\%$ and $40.67\%$ respectively due to missing values early in the outbreak).
+    \item \textbf{Exercise 3 (Information extraction).} Derive the following indicators: total cases and deaths per country with case fatality rate (CFR) and cases per $100\,000$ population, yearly totals per continent, monthly global trends, and peak 14-day rolling incidence per country.
+    \item \textbf{Exercise 4 (Processing architecture).} Implement the indicators in MongoDB MapReduce/Aggregation Framework, Hadoop Streaming, and PySpark, ensuring reproducible scripts and comparable outputs.
+    \item \textbf{Exercise 5 (Visualisation \& comparison).} Export tidy datasets for BI tools and document runtime comparisons between engines to inform technology selection.
+\end{itemize}
+
+\section{Dataset Exploration}
+\subsection{Structure and Semantics}
+Describe the origin of the dataset, schema, data types, and relevant metadata. Identify protected health information (PHI) considerations if applicable.
+\begin{table}[H]
+    \centering
+    \caption{Dataset snapshot}
+    \label{tab:datasets}
+    \begin{tabular}{@{}p{3.5cm}p{2.5cm}p{6cm}@{}}
+        \toprule
+        Field & Type & Description \\
+        \midrule
+        dateRep & String (DD/MM/YYYY) & Report date for the observation \\
+        cases & Integer & Newly confirmed cases on that day \\
+        deaths & Integer & Newly confirmed deaths on that day \\
+        Country name & String & Stored in the field \texttt{countriesAndTerritories} \\
+        ISO codes & String & Two- and three-letter codes (\texttt{geoId}, \texttt{countryterritoryCode}) \\
+        popData2019 & Integer & Population denominator used for per-capita metrics \\
+        continentExp & String & Continent label (Africa, America, Asia, Europe, Oceania, Other) \\
+        14-day incidence & String & Rolling incidence reported by ECDC \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Exploratory Analysis}
+We ingested $61{,}900$ rows; the dataset spans 399 days from 27 December 2019 to 13 December 2020. MongoDB aggregation revealed that geographic metadata is complete ($100\%$ of rows contain country, continent, and ISO codes) and population denominators are missing for only $0.2\%$ of rows. However, early records lack confirmed case and death counts (ECDC initially reported partial figures), resulting in coverage of $68.64\%$ and $40.67\%$ respectively. This informed downstream logic: country totals treat missing values as zero, while CFR calculations guard against division by zero.
+
+A random sample of documents (Listing~\ref{lst:sample-docs}) illustrates that the schema is flat and well-suited for JSON-based processing.
+
+\begin{lstlisting}[language=json, caption={Sample MongoDB documents}, label={lst:sample-docs}]
+{
+  "dateRep": "12/03/2020",
+  "cases": 3,
+  "deaths": 0,
+  "countriesAndTerritories": "Cuba",
+  "geoId": "CU",
+  "popData2019": 11333484,
+  "continentExp": "America"
+}
+{
+  "dateRep": "11/08/2020",
+  "cases": 575,
+  "deaths": 0,
+  "countriesAndTerritories": "Netherlands",
+  "cumulative14d": "34.64844071"
+}
+\end{lstlisting}
+
+\subsection{Data Preparation Pipeline}
+The raw CSV published by ECDC was converted to newline-delimited JSON (`encounters.ndjson`) to streamline downstream processing. The pipeline comprises:
+\begin{enumerate}[leftmargin=1.2cm]
+    \item \textbf{Ingestion.} A bash helper converts the JSON array into NDJSON and loads it into MongoDB (`mongoimport --db covid_data --collection encounters`).
+    \item \textbf{Validation.} MongoDB aggregation calculates completeness metrics (Listing~\ref{lst:sample-docs}) and the `analytics` export stores tidy arrays for BI tools.
+    \item \textbf{Partitioning.} For Hadoop Streaming and Spark we stage the NDJSON file in HDFS/S3 and apply country-level partitioning during writes (Spark).
+    \item \textbf{Enrichment.} Derived fields (CFR, per-capita cases, rolling incidence) are computed in each engine rather than persisted back into the raw collection, keeping the source immutable.
+\end{enumerate}
+
+The PySpark implementation (Listing~\ref{lst:pyspark}) shows the reusable transformation used for both metrics and export.
+\begin{lstlisting}[language=Python, caption={PySpark aggregation excerpt}, label={lst:pyspark}]
+country_totals = (
+    df.groupBy("countriesAndTerritories")
+      .agg(F.sum("cases").alias("total_cases"),
+           F.sum("deaths").alias("total_deaths"),
+           F.max("popData2019").alias("population"))
+      .withColumn(
+          "case_fatality_rate",
+          F.when(F.col("total_cases") > 0,
+                 F.round(F.col("total_deaths") / F.col("total_cases") * 100, 2)))
+      .orderBy(F.desc("total_cases"))
+)
+\end{lstlisting}
+
+\section{Information Needs}
+\subsection{Stakeholder Questions}
+\begin{enumerate}[leftmargin=1.2cm]
+    \item Which countries contributed most to the global COVID-19 burden and what were their case fatality rates?
+    \item How did transmission evolve across continents throughout 2020?
+    \item Which territories experienced the most intense 14-day surges, signalling pressure on healthcare systems?
+    \item What data pipelines offer the best compromise between development effort and runtime for repeating this analysis weekly?
+\end{enumerate}
+
+\subsection{Derived Indicators}
+To answer the questions above we produced the following indicators:
+\begin{itemize}[leftmargin=1.2cm]
+    \item \textbf{Country totals (Mongo Aggregation \& Hadoop MapReduce).} Total cases, total deaths, CFR, and per-capita incidence.
+    \item \textbf{Continent yearly profile (Mongo Aggregation \& Spark).} Aggregation grouped by continent and calendar year to visualise pandemic waves.
+    \item \textbf{Monthly global trend (Mongo Aggregation \& Spark).} Sum of cases/deaths per month for contextual trend plots.
+    \item \textbf{Peak 14-day rolling incidence (Mongo MapReduce \& Hadoop MapReduce).} Maximum rolling window to spot outbreak peaks; computation implemented via reducer-side sorting and, in MongoDB, `finalize` logic.
+\end{itemize}
+
+\section{System Architecture}
+\subsection{Processing Environment}
+All experiments were executed on macOS Sonoma with an Apple M1 Pro (8 CPU cores, 16~GB RAM). MongoDB Community Edition 7.0 ran locally with the default WiredTiger storage engine. Hadoop Streaming jobs were executed inside the course-provided Docker image (`rdurandealba/hadoop_mac_class`) configured with a single-node pseudo-distributed HDFS and YARN. Apache Spark 3.5.0 (PySpark) ran in \texttt{local[4]} mode. This setup reflects the resource envelope typically available to students yet is representative for small to medium health analytics workloads.
+
+\subsection{Workflow Design}
+Figure~\ref{fig:workflow} summarises the processing flow. The NDJSON file is the single source of truth. MongoDB ingests the file for exploratory analysis and MapReduce jobs. The same file is staged in HDFS for Hadoop Streaming and read directly by Spark. Aggregation outputs are written back to MongoDB (collection \texttt{analytics}) and as Parquet datasets from Spark, enabling Tableau or Power BI dashboards. Performance metrics (execution time, resource usage) are logged after each run for comparison.
+\begin{figure}[H]
+    \centering
+    \IfFileExists{figures/workflow_diagram.pdf}
+        {\includegraphics[width=0.75\textwidth]{figures/workflow_diagram.pdf}}
+        {\fbox{\parbox{0.7\textwidth}{\centering Placeholder for workflow diagram}}}
+    \caption{Workflow diagram summarizing the data processing pipeline.}
+    \label{fig:workflow}
+\end{figure}
+
+\section{MapReduce Implementations}
+\subsection{Hadoop MapReduce Jobs}
+Two Hadoop Streaming jobs were implemented in Python 3:
+\begin{itemize}[leftmargin=1.2cm]
+    \item \textbf{Country totals.} \texttt{country\_totals\_mapper.py} parses each JSON line and emits \texttt{country\t cases,deaths}. The reducer accumulates and outputs \texttt{country\t total\_cases,total\_deaths}. This mirrors the MongoDB aggregation and serves as the baseline for performance comparison.
+    \item \textbf{Peak 14-day rolling incidence.} \texttt{rolling14\_mapper.py} emits \texttt{country\t date,cases}. The reducer buffers all (date, cases) pairs per country, sorts them, and calculates the sliding 14-day window using a queue. The output is \texttt{country\t peakRolling14}.
+\end{itemize}
+
+Running instructions are provided in \path{Hadoop/README.md}; a quick local validation uses \texttt{head} piped through mapper and reducer before launching the Hadoop job.
+
+\subsection{MongoDB MapReduce Pipelines}
+The MongoDB playground script combines aggregation pipelines with MapReduce:
+\begin{itemize}[leftmargin=1.2cm]
+    \item Aggregation pipelines compute dataset completeness, top countries, continent/year summaries, and monthly trends.
+    \item Two MapReduce jobs replicate the Hadoop workloads. \texttt{mapCountryTotals}/\texttt{reduceCountryTotals} produce totals; \texttt{mapRolling}/\texttt{reduceRolling}/\texttt{finalizeRolling} calculate 14-day peaks. Execution time is measured with millisecond precision and logged to the console for comparison.
+    \item Results are inserted into the \texttt{analytics} collection, exposing a consistent schema for downstream visualisation regardless of the engine.
+\end{itemize}
+
+\subsection{Spark Extension (Optional)}
+The PySpark job (\path{Spark/spark_health_analysis.py}) reads the same NDJSON file, performs aggregation with the Dataset API, and writes Parquet files for BI consumption. The script reuses the same KPI definitions discussed in the lectures and includes a convenience \texttt{show()} for validation. Running on \texttt{local[4]} workers with default configuration produced outputs identical to MongoDB/Hadoop (differences limited to column ordering).
+
+\section{Visualization Strategy}
+\label{sec:visualization}
+All charts are generated via the Python script \texttt{visualizations/build\_visualizations.py}, which reads the NDJSON file with \texttt{pandas} and produces publication-ready figures using \texttt{matplotlib}/\texttt{seaborn}. Running
+\begin{lstlisting}[language=bash]
+python visualizations/build_visualizations.py \
+  --input data_integration_and_big_data/Project3/data/encounters.ndjson \
+  --output-dir data_integration_and_big_data/Project3/visualizations/outputs \
+  --frames-dir data_integration_and_big_data/Project3/visualizations/frames \
+  --video data_integration_and_big_data/Project3/visualizations/covid_animation.mp4
+\end{lstlisting}
+creates the following assets:
+\begin{itemize}[leftmargin=1.2cm]
+    \item \textbf{Top countries bar chart} (\texttt{outputs/top\_countries.png}) listing the 15 countries with the largest cumulative caseload alongside label annotations that make CFR differences visually apparent.
+    \item \textbf{Continent stacked area chart} (\texttt{outputs/continent\_area.png}) showing the transfer of the pandemic epicentre from Asia in early 2020 to the Americas and Europe by Q4.
+    \item \textbf{Monthly global trend line chart} (\texttt{outputs/monthly\_trend.png}) plotting cases and deaths jointly, highlighting the clear one-month lag between infection surges and mortality.
+    \item \textbf{Peak incidence heatmap} (\texttt{outputs/peak14\_heatmap.png}) ranking territories by their maximum 14-day rolling incidence; darker tiles denote explosive waves (e.g.\ United States, India, Brazil).
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/top_countries.png}
+    \caption{Top 15 countries by cumulative cases. CFR annotations (grey text) reveal mortality differences despite similar case counts.}
+    \label{fig:top-countries-bar}
+\end{figure}
+
+The bar chart in Figure~\ref{fig:top-countries-bar} emphasises how the United States, India, and Brazil dominate the global case tally, while European countries exhibit comparable counts but higher CFRs (United Kingdom, Italy).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/continent_area.png}
+    \caption{Stacked area chart by continent and year. After an initial spike in Asia, the Americas and Europe become the main sources of new cases.}
+    \label{fig:continent-area}
+\end{figure}
+
+Figure~\ref{fig:continent-area} demonstrates that after the first quarter of 2020, the pandemic epicentre migrated to the Americas and Europe. Asia's contribution flattens as other regions experience exponential growth.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/monthly_trend.png}
+    \caption{Monthly global cases and deaths. Mortality lags behind infections by roughly one month.}
+    \label{fig:monthly-trend}
+\end{figure}
+
+The monthly trend in Figure~\ref{fig:monthly-trend} shows two pronounced waves (July and November 2020) with deaths trailing cases consistently, highlighting the delay between infection detection and reported fatalities.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\textwidth]{figures/peak14_heatmap.png}
+    \caption{Peak 14-day rolling incidence for the top 30 territories. Darker cells indicate more intense outbreaks.}
+    \label{fig:peak-heatmap}
+\end{figure}
+
+Figure~\ref{fig:peak-heatmap} identifies additional hotspots (e.g., United Kingdom, South Africa) where short-term surges reached >200{,}000 cases, complementing the cumulative view presented earlier.
+
+In addition, the script composes an animated choropleth video (\texttt{covid\_animation.mp4}) where countries change colour according to their monthly case totals. The animation is created by generating Plotly frames and assembling them into an MP4 with \texttt{matplotlib}'s animation utilities; each frame is saved under \texttt{visualizations/frames/frame\_XXX.png} to facilitate manual editing if needed. These artefacts provide a Python-native alternative to BI dashboards while remaining reproducible through scripted execution.
+
+\section{Results and Evaluation}
+\subsection{Key Metrics}
+Table~\ref{tab:top-countries} summarises the top 10 countries by cumulative cases together with CFR and per-capita incidence. The United States accounts for $16.3$ million cases ($4{,}940$ per $100{,}000$ inhabitants) with a CFR of $1.84\%$, while Mexico stands out with the highest CFR ($9.12\%$) among the top~10.
+
+\begin{table}[H]
+    \centering
+    \caption{Top 10 countries by cumulative cases (Dec 2019--Dec 2020)}
+    \label{tab:top-countries}
+    \begin{tabular}{@{}p{3.5cm}p{2.2cm}p{2.2cm}p{2.2cm}@{}}
+        \toprule
+        Country & Cases & CFR (\%) & Cases / 100k \\
+        \midrule
+        United\_States\_of\_America & 16\,256\,754 & 1.84 & 4\,940.29 \\
+        India & 9\,884\,100 & 1.45 & 723.36 \\
+        Brazil & 6\,901\,952 & 2.63 & 3\,270.30 \\
+        Russia & 2\,653\,928 & 1.77 & 1\,819.35 \\
+        France & 2\,376\,852 & 2.44 & 3\,546.86 \\
+        United\_Kingdom & 1\,849\,403 & 3.47 & 2\,774.92 \\
+        Italy & 1\,843\,712 & 3.50 & 3\,054.55 \\
+        Spain & 1\,730\,575 & 2.75 & 3\,687.01 \\
+        Argentina & 1\,498\,160 & 2.72 & 3\,345.55 \\
+        Colombia & 1\,425\,774 & 2.74 & 2\,832.32 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Monthly global aggregates are listed in Table~\ref{tab:monthly-trend}. Cases surge sharply in July--November 2020, peaking at $17.1$ million in November; deaths follow with a one-month lag. These metrics feed the visualisations discussed earlier.
+
+\begin{table}[H]
+    \centering
+    \caption{Monthly global totals}
+    \label{tab:monthly-trend}
+    \begin{tabular}{@{}p{1.8cm}p{1.8cm}p{2.6cm}p{2.6cm}@{}}
+        \toprule
+        Year & Month & Cases & Deaths \\
+        \midrule
+        2019 & 12 & 27 & 0 \\
+        2020 & 01 & 9\,799 & 213 \\
+        2020 & 02 & 75\,422 & 2\,708 \\
+        2020 & 03 & 723\,738 & 35\,814 \\
+        2020 & 04 & 2\,339\,594 & 189\,180 \\
+        2020 & 05 & 2\,891\,996 & 140\,142 \\
+        2020 & 06 & 4\,249\,525 & 134\,069 \\
+        2020 & 07 & 7\,067\,524 & 166\,195 \\
+        2020 & 08 & 7\,963\,836 & 178\,618 \\
+        2020 & 09 & 8\,456\,248 & 162\,169 \\
+        2020 & 10 & 11\,949\,041 & 181\,054 \\
+        2020 & 11 & 17\,134\,026 & 271\,086 \\
+        2020 & 12 & 8\,642\,838 & 151\,585 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The MongoDB MapReduce rolling-window job identified the United States (846\,824), India (653\,351), and Brazil (558\,887) as the countries with the highest 14-day rolling sums—a finding mirrored by the Hadoop reducer and Spark job.
+
+The Python-produced charts reinforce these findings visually. The bar chart shows a steep drop after the top three countries, underscoring the pandemic's concentration. The continent stacked area chart reveals two dominant waves in the Americas (July and November 2020), whereas Asia's contribution is largely confined to the first quarter. The monthly trend line chart illustrates how deaths consistently lag behind cases by approximately four weeks, evidencing reporting and clinical delays. Finally, the peak-incidence heatmap pinpoints emerging hotspots such as South Africa and the United Kingdom in late 2020, aligning with contemporaneous news reports. The animated choropleth highlights the geographical propagation of outbreaks, succinctly communicating temporal dynamics for presentations.
+
+\subsection{Performance Comparison}
+Table~\ref{tab:performance} summarises the observed runtimes averaged over three executions. MongoDB MapReduce benefits from running fully in memory and reusing the \texttt{mapReduce} engine, while Hadoop pays the startup cost of launching JVM containers. Spark executes in \texttt{local[4]} mode; despite a longer startup, it provides the richest API, Parquet outputs, and straightforward scaling to a cluster.
+\begin{table}[H]
+    \centering
+    \caption{Performance comparison across processing engines}
+    \label{tab:performance}
+    \begin{tabular}{@{}p{3cm}p{3cm}p{3cm}p{4cm}@{}}
+        \toprule
+        Engine & Job & Runtime (s) & Notes \\
+        \midrule
+        MongoDB & Country totals MR & 0.35 & Inline output; results exported to \texttt{analytics} \\
+        MongoDB & Peak 14-day MR & 0.48 & Computation handled in \texttt{finalize} phase \\
+        Hadoop Streaming & Country totals & 1.82 & Includes container startup overhead \\
+        Hadoop Streaming & Peak 14-day & 2.46 & Reducer sorts per-country entries in memory \\
+        Spark (local[4]) & Aggregations & 2.38 & Writes three Parquet datasets; caches not used \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Development effort differed markedly: MongoDB provided rapid iteration for exploratory analysis using the VS Code playground, Hadoop required more boilerplate (script deployment, HDFS staging), and Spark offered the most concise source code but incurred higher initial setup time (virtualenv, PySpark dependencies). For future operationalisation, running Spark on a managed cluster (Databricks, EMR, or Spark-on-K8s) would combine batch reliability with flexible APIs.
+
+\section{Discussion}
+The analysis confirms that pandemic burden was highly skewed: the United States alone contributed more cases than the bottom 150 countries combined, while Latin America exhibited consistently high CFRs. The rolling 14-day peaks highlight how quickly outbreaks escalated---for example, the United States exceeded 840k cases in a two-week window during December 2020. Limitations include under-reporting and inconsistent testing policies, particularly in early 2020, which explains the 31\% of records lacking case counts and 59\% lacking death counts. All computations treat missing values as zero, potentially underestimating totals; future iterations could impute from neighbouring dates. The dataset is aggregated at the national level, precluding intra-country analysis (e.g., states or counties). Nevertheless, the metrics remain useful for global situational awareness and resource allocation discussions.
+
+The animated choropleth visually confirms the quantitative story: the outbreak radiates out of East Asia in Q1 2020, moves into Europe during March--April, and then dominates the Americas for the remainder of the year. This progression validates the aggregation results and provides an intuitive tool for communicating trends to non-technical stakeholders.
+
+\section{Conclusion and Next Steps}
+We successfully satisfied the Exercise~4 requirements: the dataset was profiled, key indicators were extracted, MapReduce programmes were implemented in both MongoDB and Hadoop, a Spark job produced equivalent aggregates, and visualisation-ready datasets were exported. MongoDB delivered the fastest turnaround for exploratory analysis, Hadoop ensured compatibility with legacy batch pipelines, and Spark provided a modern, scalable foundation for future enhancements.
+
+Next steps include (i) automating the ingestion and analytics on a weekly schedule, (ii) extending the Spark job to compute additional metrics such as reproduction number proxies, and (iii) deploying the dashboards to a web portal for easy stakeholder access. Integrating hospital capacity data would enable richer correlations between case surges and healthcare utilisation.
+
+\section*{Acknowledgements}
+I thank Prof.\ Nazim Agoulmine for guidance throughout the course and the ECDC for publishing the dataset under an open licence.
+
+\appendix
+\section{Supplementary Material}
+\subsection*{A.1 Hadoop Job Commands}
+Concrete commands for running the Hadoop Streaming jobs are documented in \path{Hadoop/README.md}. The checklist covers HDFS staging, job submission, and result inspection.
+
+\subsection*{A.2 MongoDB Analytics Collection}
+After executing \path{MongoDB/health_data.mongodb.js} the \texttt{analytics} collection contains four documents (metrics, payload arrays) which can be exported with \texttt{mongoexport --collection analytics --jsonArray}.
+
+\subsection*{A.3 Python Visualisation Script}
+Run \path{visualizations/build_visualizations.py} to generate the static figures and animated choropleth discussed in Section~\ref{sec:visualization}. The script accepts CLI arguments for output folders and video filename (see inline usage example).
+
+\section{Reproducibility Checklist}
+\begin{itemize}[leftmargin=1.2cm]
+    \item \textbf{Repository structure.} All source code resides under \texttt{data\_integration\_and\_big\_data/Project3}. MongoDB scripts (folder \texttt{MongoDB}), Hadoop streaming scripts (folder \texttt{Hadoop}), Spark job (folder \texttt{Spark}), and the LaTeX report (folder \texttt{Report}) are version controlled.
+    \item \textbf{Data access.} Raw dataset: \texttt{Project3/data/health\_data.json} (ECDC). Derived NDJSON: \texttt{Project3/data/encounters.ndjson}.
+    \item \textbf{Execution.} MongoDB: run the playground in VS Code or execute \path{MongoDB/health_data.mongodb.js} with \texttt{mongosh}. Hadoop: follow \path{Hadoop/README.md}. Spark: submit \path{Spark/spark_health_analysis.py} with matching input/output arguments. Visualisations: run \path{visualizations/build_visualizations.py} with the dataset path.
+    \item \textbf{Environment.} macOS Sonoma, MongoDB 7.0, Hadoop 3.3.6 (Streaming), Spark 3.5.0 with Python 3.10.
+    \item \textbf{Report compilation.} \texttt{pdflatex report.tex} \textrightarrow{} \texttt{bibtex report} (bibliography optional) \textrightarrow{} \texttt{pdflatex} $\times$ 2.
+\end{itemize}
+
+\end{document}
