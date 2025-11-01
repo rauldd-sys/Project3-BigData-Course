@@ -1,5 +1,5 @@
 /* global use, db */
-// MongoDB Playground script tailored for covid_data.encounters collection
+// MongoDB Playground script for covid_data.encounters collection
 // Data ingestion (run from shell once):
 //   jq -c '.records[]' Project3/data/health_data.json > Project3/data/encounters.ndjson
 //   mongoimport --db covid_data --collection encounters --drop --file Project3/data/encounters.ndjson
@@ -154,7 +154,7 @@ console.log('Monthly global cases/deaths:');
 printjson(monthlyGlobalTrend);
 
 console.log('\n--- MapReduce Jobs (MongoDB MR equivalent to Hadoop jobs) ---');
-// MR Job 1: Total cases/deaths per country (align with Hadoop job for comparison)
+// MR Job 1: Total cases/deaths per country (overall totals)
 const mapCountryTotals = function () {
   emit(this.countriesAndTerritories || 'Unknown', {
     cases: this.cases || 0,
@@ -179,7 +179,7 @@ var elapsedCountryTotals = new Date() - startCountryTotals;
 console.log('mongoMR:countryTotals runtime (ms):', elapsedCountryTotals);
 printjson(mrCountryTotals.results.slice(0, 10));
 
-// MR Job 2: Peak 14-day rolling sum per country (mirrors Hadoop rolling window job)
+// MR Job 2: Peak 14-day rolling sum per country (to mimic sliding window)
 const mapRolling = function () {
   if (this.countriesAndTerritories && this.cases && this.dateRep) {
     emit(this.countriesAndTerritories, [
@@ -254,8 +254,3 @@ if (analyticsDocs.every(function (doc) { return doc.payload && doc.payload.lengt
 } else {
   console.log('Skipped analytics export because one or more payloads were empty.');
 }
-
-console.log('\n--- Hadoop vs MongoDB Comparison Notes ---');
-console.log(`1. Reimplement country totals MapReduce in Hadoop and compare runtime with 'mongoMR:countryTotals'.
-2. Build a Hadoop job that computes 14-day rolling sums using secondary sort or Spark; contrast timings with 'mongoMR:peakRolling14'.
-3. Use the analytics collection exports as data sources for Tableau/Matplotlib dashboards to satisfy visualization requirement.`);

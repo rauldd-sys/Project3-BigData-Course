@@ -11,6 +11,11 @@ The job produces three outputs:
     2. continent_yearly: yearly totals per continent
     3. monthly_trend: global monthly cases/deaths
 Each dataset is written as Parquet under the provided output directory.
+
+It was executed as follows:
+spark-submit data_integration_and_big_data/Project3/Spark/spark_health_analysis.py \
+    --input file:///Users/raulduran/Documents/M2_GENIOMHE/data_integration_and_big_data/Project3/data/encounters.ndjson \
+    --output data_integration_and_big_data/Project3/Spark/output
 """
 
 from __future__ import annotations

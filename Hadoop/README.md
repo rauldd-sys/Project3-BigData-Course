@@ -11,7 +11,7 @@ export HADOOP_USER_NAME=hduser
 
 # Put the COVID NDJSON dataset into HDFS
 hdfs dfs -mkdir -p /user/hduser/covid/input
-hdfs dfs -copyFromLocal ../data/encounters.ndjson /user/hduser/covid/input/encounters.ndjson
+hdfs dfs -copyFromLocal /Users/raulduran/Documents/M2_GENIOMHE/data_integration_and_big_data/Project3/data/encounters.ndjson /user/hduser/covid/input/encounters.ndjson
 
 # Make mapper/reducer scripts executable
 chmod +x country_totals_mapper.py country_totals_reducer.py \
@@ -28,17 +28,17 @@ hdfs dfs -ls /user/hduser/covid/input
 
 ```bash
 # Optional local smoke test
-head -5 ../data/encounters.ndjson \
+head -5 encounters.ndjson \
   | ./country_totals_mapper.py \
   | sort \
   | ./country_totals_reducer.py
 
 # Run on Hadoop
-hadoop jar /opt/hadoop/share/hadoop/tools/lib/hadoop-streaming-3.3.6.jar \
-  -files /workspace/data_integration_and_big_data/Project3/Hadoop/country_totals_mapper.py,\
-/workspace/data_integration_and_big_data/Project3/Hadoop/country_totals_reducer.py \
-  -mapper /workspace/data_integration_and_big_data/Project3/Hadoop/country_totals_mapper.py \
-  -reducer /workspace/data_integration_and_big_data/Project3/Hadoop/country_totals_reducer.py \
+time hadoop jar /opt/hadoop/share/hadoop/tools/lib/hadoop-streaming-3.3.6.jar \
+  -files /workspace/country_totals_mapper.py,\
+/workspace/country_totals_reducer.py \
+  -mapper /workspace/country_totals_mapper.py \
+  -reducer /workspace/country_totals_reducer.py \
   -input /user/hduser/covid/input/encounters.ndjson \
   -output /user/hduser/covid/output_country_totals
 
@@ -58,17 +58,17 @@ hdfs dfs -rm -r /user/hduser/covid/output_country_totals
 
 ```bash
 # Optional local smoke test
-head -5 ../data/encounters.ndjson \
+head -5 encounters.ndjson \
   | ./rolling14_mapper.py \
   | sort \
   | ./rolling14_reducer.py
 
 # Run on Hadoop
-hadoop jar /opt/hadoop/share/hadoop/tools/lib/hadoop-streaming-3.3.6.jar \
-  -files /workspace/data_integration_and_big_data/Project3/Hadoop/rolling14_mapper.py,\
-/workspace/data_integration_and_big_data/Project3/Hadoop/rolling14_reducer.py \
-  -mapper /workspace/data_integration_and_big_data/Project3/Hadoop/rolling14_mapper.py \
-  -reducer /workspace/data_integration_and_big_data/Project3/Hadoop/rolling14_reducer.py \
+time hadoop jar /opt/hadoop/share/hadoop/tools/lib/hadoop-streaming-3.3.6.jar \
+  -files /workspace/rolling14_mapper.py,\
+/workspace/rolling14_reducer.py \
+  -mapper /workspace/rolling14_mapper.py \
+  -reducer /workspace/rolling14_reducer.py \
   -input /user/hduser/covid/input/encounters.ndjson \
   -output /user/hduser/covid/output_peak14
 
@@ -83,10 +83,3 @@ Clean up the output if you plan to re-run:
 ```bash
 hdfs dfs -rm -r /user/hduser/covid/output_peak14
 ```
-
-## 4. Troubleshooting tips
-
-- Ensure the NDJSON file exists at `/workspace/data_integration_and_big_data/Project3/data/encounters.ndjson` before copying to HDFS.
-- If you re-run a job without removing its previous output, Hadoop will raise `FileAlreadyExistsException`.
-- Use `hdfs dfs -tail` on output files for quick inspection.
-- To leave the container, run `exit` (remember to stop/remove the container if you don’t need it anymore).
