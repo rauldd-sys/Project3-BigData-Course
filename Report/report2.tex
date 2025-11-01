@@ -1,4 +1,4 @@
-\documentclass[12pt,a4paper]{article}
+\documentclass[12pt,a4paper]{article} 
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -19,6 +19,8 @@
 \usepackage[dvipsnames]{xcolor}
 \usepackage{hyperref}
 \usepackage{csquotes}
+\usepackage[backend=bibtex,style=numeric,sorting=none]{biblatex}
+\addbibresource{references.bib}
 
 \graphicspath{{figures/}}
 
@@ -102,13 +104,13 @@
 \pagenumbering{arabic}
 
 \section{Introduction}
-Project~3 picks up where the first two projects left off. In Project~1 I focused on building fluency with MongoDB queries; Project~2 brought Hadoop Streaming into the toolkit. Exercise~4 now asks for a unified health-data analysis that reuses those skills and folds Spark plus Python visualisation into the mix. Staying within the material covered in class, I set out to trace the COVID-19 pandemic across 61\,900 ECDC records and to show how the same questions can be answered in MongoDB, Hadoop, and Spark.
+Project~3 continues where the prior two projects left off. In Project 1, I concentrated on understanding MongoDB queries, while Project 2 added Hadoop Streaming to the toolkit. Exercise 4 requires a unified health-data analysis using Spark and Python for visualization. I analyzed the COVID-19 pandemic using the 61,900-line file curated by the European Centre for Disease Prevention and Control (ECDC) \cite{ecdcDownloadHistoricalData2020} and demonstrated how similar queries can be answered in MongoDB, Hadoop, and Spark.
 
-The Cloud Computing lectures emphasise portability of analytics: if a metric is useful, we should be able to express it in every engine on the syllabus. With that in mind, this report is structured around a simple narrative. First, I document the dataset and the preparation steps that make it consumable by the three platforms. Then I walk through the implementation on each stack, keeping the logic parallel so the outputs stay comparable. Finally, I turn the numeric results into visual evidence, both static charts and an animated map, before reflecting on performance and lessons learned.
+As seen in the lectures the portability of analytics is key: if a metric is useful, we should be able to express it in every engine covered in the course.  With that in mind, this report is structured as an introductory exposition.    First, I document the dataset and the steps involved in preparing it for use on the three platforms.  Then I step through the implementation on each stack, keeping the logic parallel so that the results are comparable.  Finally, I convert the numerical results into visual proof, both static charts and an animated map, and compare my timings to published Spark-versus-Map Reduce benchmarks to support the performance discussion. \cite{tekdoganBenchmarkingApacheSpark2021}.
 
 \section{Dataset and preparation}
 \subsection{Source}
-The ECDC daily surveillance feed is distributed as a JSON object with a single \texttt{records} array. Each element contains a date, new cases, new deaths, the country name (with underscores), ISO codes, population, and a continent label.
+The ECDC daily surveillance feed is distributed as a JSON object with a single \texttt{records} array. Each element contains a date, new cases, new deaths, the country name (with underscores), ISO codes, population, and a continent label \cite{ecdcDownloadHistoricalData2020}.
 
 \subsection{Conversion to NDJSON}
 Hadoop and many CLI utilities are happier with newline-delimited JSON. Following the classroom recipe, I used \texttt{jq} to explode the array, then imported the NDJSON into MongoDB and copied it to HDFS.
@@ -213,7 +215,7 @@ db.encounters.aggregate([
 ])
 \end{lstlisting}
 
-The MapReduce section mirrors the Hadoop reducers: the first job simply sums cases and deaths, while the second buffers (date, cases) pairs per country, sorts them, and scans a sliding 14-day window in a \texttt{finalize} function. Inline outputs take around 0.35 to 0.48~seconds on my machine.
+The MapReduce section mirrors the Hadoop reducers: the first job simply sums cases and deaths, while the second buffers (date, cases) pairs per country, sorts them, and scans a sliding 14-day window in a \texttt{finalize} function, following the pattern recommended in the MongoDB documentation \cite{MapReduceDatabaseManual}. Inline outputs take around 0.35 to 0.48~seconds on my machine.
 
 \begin{figure}[H]
     \centering
@@ -224,7 +226,7 @@ The MapReduce section mirrors the Hadoop reducers: the first job simply sums cas
 \FloatBarrier
 
 \subsection{Hadoop Streaming}\label{sec:hadoop}
-All scripts live in \texttt{Hadoop/}. The modernised version replaces the tutorial word-count with two project-specific jobs.
+All scripts live in \texttt{Hadoop/}. The modernised version replaces the tutorial word-count with two project-specific jobs while following the job-setup pattern described in the official MapReduce tutorial \cite{ApacheHadoop3422025}.
 \begin{itemize}[leftmargin=1.2cm]
     \item \textbf{country\_totals\_mapper.py / reducer.py} emit \texttt{country cases,deaths} and accumulate totals plus CFR.
     \item \textbf{rolling14\_mapper.py / reducer.py} emit \texttt{country date,cases} and compute the maximum rolling window.
@@ -362,7 +364,7 @@ Figure~\ref{fig:animation-frames} compares three snapshots of the pandemic: the 
 \end{figure}
 \FloatBarrier
 
-\noindent The full monthly animation is included in the submission (\path{Project3/visualizations/covid_animation.mp4}) and mirrored online at \href{https://github.com/raulduran/M2_GENIOMHE/blob/main/data_integration_and_big_data/Project3/visualizations/covid_animation.mp4}{this repository link}.
+\noindent The full monthly animation is included in the submission (\path{Project3/visualizations/covid_animation.mp4}) and mirrored online at \href{https://github.com/rauldd-sys/Project3-BigData-Course/blob/bf0ccccac5b6f8c0a8112404d1aa68418e771dfa/visualizations/covid_cases.mp4}{this repository link}.
 
 \section{Key indicators and performance}
 \subsection{Top countries (Dec~2019 to Dec~2020)}
@@ -402,15 +404,19 @@ Figure~\ref{fig:animation-frames} compares three snapshots of the pandemic: the 
 \end{table}
 \FloatBarrier
 
-MongoDB proved ideal for fast exploration and quick tweaks inside the playground. Hadoop demanded more scaffolding but delivered fine-grained control that mirrors the exercises from class. Spark ran the same aggregations with compact code and produced Parquet outputs, even if the JVM start-up kept runtimes a little higher.
+MongoDB proved ideal for fast exploration and quick tweaks inside the playground. Hadoop demanded more scaffolding but delivered fine-grained control that mirrors the exercises from class. Spark ran the same aggregations with compact code and produced Parquet outputs, even if the JVM start-up kept runtimes a little higher—a ranking that aligns with independent benchmarks contrasting Spark and MapReduce on analytical workloads \cite{tekdoganBenchmarkingApacheSpark2021,vermaBigDataManagement2016}.
 
 \newpage
 \section{Discussion and conclusion}
-Running the three pipelines side by side did more than stress-test the tooling. It confirmed that the underlying indicators are stable: the United States, India, and Brazil lead the global case counts, Europe faces a marked resurgence in the autumn of 2020, mortality curves trail cases by about one month, and only a handful of territories hit the most severe 14-day incidence levels. That consistency gave me confidence that each engine was wired correctly before I moved on to the next.
+Running the three pipelines side by side did more than just stress the software.    It confirmed that the underlying indicators are stable: the United States, India, and Brazil lead the global case count, Europe is on track for a significant resurgence in the autumn of 2020, mortality curves trail cases by about one month, and only a few territories have reached the most severe 14-day incidence levels.  That consistency gave me the assurance that each platform was properly set up before moving on to the next.
 
-Each platform brought its own strengths. MongoDB offered the quickest iteration cycle, so it became the staging ground for validating calculations and exploring edge cases. Hadoop Streaming felt heavier to launch, yet it followed the exact MapReduce patterns covered in lectures, which made it a good check that I could still express the logic with explicit key-value flows. Spark sat in the middle: the codebase stayed compact, the DataFrame API kept the transformations readable, and the outputs are ready for reuse thanks to Parquet storage.
+Each platform has its own merits. MongoDB provided the quickest iteration cycle, therefore it was used to validate calculations and explore the dataset. Hadoop Streaming felt challenging to launch, but it followed the precise MapReduce patterns discussed in the tutorials, which confirmed that I could still describe the logic with explicit key-value programs in Python. Spark sat in the middle: the source remained concise, the DataFrame API made the transformations understandable, and the outputs were available for reuse thanks to Parquet storage.
 
 If I had more time, I would look into filling the early gaps in the case and death columns, layering in hospitalisation or vaccination context, and turning the notebook-style scripts into scheduled runs. For now, the workflow already meets the course objectives and remains faithful to the toolset we practised in class while producing a complete, reproducible study of the ECDC dataset.
+
+\newpage
+\section*{References}
+\printbibliography[heading=none]
 
 \newpage
 \appendix
